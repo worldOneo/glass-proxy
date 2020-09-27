@@ -43,4 +43,3 @@ While the proxy is running you can add/remove server
 | `add <Name> <addr>` | add a server to the proxy which is then used in the Load Balancer |
 | `rem <Name>` | remove a server from the proxy (Opened connections will stay but no new connections will be created) |
 | `list` | lists all servers which are registered |
-| `stop` | stops the proxy |

@@ -11,7 +11,7 @@ type CommandHandler struct {
 	commandMap map[string]func([]string)
 }
 
-const helpText = "====COMMANDS====\nstop stops the proxy\nadd <NAME> <ADDR> Add a server\nrem <NAME> Remove a server\nlist show all servers"
+const helpText = "====COMMANDS====\nadd <NAME> <ADDR> Add a server\nrem <NAME> Remove a server\nlist show all servers"
 
 // NewCommandHandler creates a new CommandHandler
 func NewCommandHandler() *CommandHandler {
@@ -50,9 +50,6 @@ func (c *CommandHandler) Listen() {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
 			text := scanner.Text()
-			if strings.ToLower(text) == "stop" {
-				return
-			}
 			c.Handle(text)
 		}
 	}
