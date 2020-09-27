@@ -3,6 +3,7 @@
 
  - Health Checking
  - Load Balancing
+ - Dynamically add/remove server
 
 # Configuration
 This is the default configuration (the file `glass.proxy.json`):
@@ -34,3 +35,12 @@ The servers are checked regularly (based on the config `healthCheckSeconds`) if 
 
 # Load Balancing
 The proxy selects a random server for every connection. This way the load will be (pseudo) randomly balanced between every registered host. The Health Checks ensure that the Server is reachable.
+
+# Commands
+While the proxy is running you can add/remove server
+| cmd | Action |
+| --- | --- |
+| `add <Name> <addr>` | add a server to the proxy which is then used in the Load Balancer |
+| `rem <Name>` | remove a server from the proxy (Opened connections will stay but no new connections will be created) |
+| `list` | lists all servers which are registered |
+| `stop` | stops the proxy |

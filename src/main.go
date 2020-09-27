@@ -1,28 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/worldOneo/glass-proxy/src/cmd"
+	"github.com/worldOneo/glass-proxy/src/cmds"
 	"github.com/worldOneo/glass-proxy/src/config"
 	"github.com/worldOneo/glass-proxy/src/handler"
 	"github.com/worldOneo/glass-proxy/src/tcpproxy"
 )
-
-// ProxyService with everything we need
-type ProxyService struct {
-	hosts  []*handler.TCPHost
-	config *config.Config
-}
 
 //
 const (
 	ConfigPath = "glass.proxy.json"
 )
 
-var proxyService *ProxyService
+var proxyService *tcpproxy.ProxyService
 
 func main() {
 	cnf, cnfErr := config.Load(ConfigPath)
@@ -36,32 +36,41 @@ func main() {
 	}
 	rand.Seed(time.Now().UnixNano())
 
-	hosts := make([]*handler.TCPHost, 0)
-	for _, host := range cnf.Hosts {
-		newHost := handler.NewTCPHost(host.Name, host.Addr)
-		hosts = append(hosts, newHost)
+	proxyService = &tcpproxy.ProxyService{
+		Config:         cnf,
+		CommandHandler: cmd.NewCommandHandler(),
 	}
+	proxyService.LoadHosts()
 
-	proxyService = &ProxyService{
-		config: cnf,
-		hosts:  hosts,
-	}
+	commandHandler := cmd.NewCommandHandler()
+	commandHandler.Register("add", cmds.NewAddCommand(proxyService).Handle)
+	commandHandler.Register("rem", cmds.NewRemCommand(proxyService).Handle)
+	commandHandler.Register("list", cmds.NewListCommand(proxyService).Handle)
 
-	ln, err := net.Listen("tcp", proxyService.config.Addr)
+	ln, err := net.Listen("tcp", proxyService.Config.Addr)
 	if err != nil {
 		return
 	}
 
-	log.Printf("Listening on %s", proxyService.config.Addr)
+	log.Printf("Listening on %s", proxyService.Config.Addr)
+
 	go healthCheck()
-	for {
-		conn, _ := ln.Accept()
-		go toConn(conn)
-	}
+	go acceptConnections(ln)
+	go commandHandler.Listen()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+	fmt.Println("Stoping...")
+	return
 }
 
 func toConn(conn net.Conn) {
 	host := getHost()
+	if host == nil {
+		conn.Close()
+		return
+	}
 	serverConn, err := net.Dial("tcp", host.Addr)
 	if err != nil {
 		log.Printf("Couldn't connect to %s (%s)", host.Name, host.Addr)
@@ -70,21 +79,24 @@ func toConn(conn net.Conn) {
 	reverseProxy := tcpproxy.NewReverseProxy(conn, serverConn)
 	go reverseProxy.Pipe()
 
-	if proxyService.config.LoggConnections {
+	if proxyService.Config.LoggConnections {
 		log.Printf("%s Connected to %s (%s)", conn.RemoteAddr(), host.Name, host.Addr)
 	}
 }
 
 func getHost() *handler.TCPHost {
-	l := len(proxyService.hosts)
+	l := len(proxyService.Hosts)
+	if l == 0 {
+		return nil
+	}
 	i := rand.Intn(l)
-	h := proxyService.hosts[i]
+	h := proxyService.Hosts[i]
 	if h.Status.Online {
 		return h
 	}
 	mx := i + l
 	for j := i; j < mx; j++ {
-		h = proxyService.hosts[j%l]
+		h = proxyService.Hosts[j%l]
 		if h.Status.Online {
 			return h
 		}
@@ -94,7 +106,14 @@ func getHost() *handler.TCPHost {
 
 func healthCheck() {
 	for {
-		time.Sleep(time.Duration(proxyService.config.HealthCheckTime) * time.Minute)
-		handler.CheckHosts(proxyService.hosts)
+		handler.CheckHosts(proxyService.Hosts)
+		time.Sleep(time.Duration(proxyService.Config.HealthCheckTime) * time.Second)
+	}
+}
+
+func acceptConnections(ln net.Listener) {
+	for {
+		conn, _ := ln.Accept()
+		go toConn(conn)
 	}
 }
