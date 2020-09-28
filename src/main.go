@@ -24,15 +24,7 @@ const (
 var proxyService *tcpproxy.ProxyService
 
 func main() {
-	cnf, cnfErr := config.Load(ConfigPath)
-
-	if cnfErr != nil {
-		cnf = config.Default()
-		creErr := config.Create(ConfigPath, cnf)
-		if creErr != nil {
-			log.Fatal("Couldn't load the Config")
-		}
-	}
+	cnf := loadConfig()
 	rand.Seed(time.Now().UnixNano())
 
 	proxyService = &tcpproxy.ProxyService{
@@ -44,15 +36,8 @@ func main() {
 	commandHandler := cmd.NewCommandHandler()
 	registerCommands(commandHandler, proxyService)
 
-	ln, err := net.Listen("tcp", proxyService.Config.Addr)
-	if err != nil {
-		return
-	}
-
-	log.Printf("Listening on %s", proxyService.Config.Addr)
-
+	go start()
 	go healthCheck()
-	go acceptConnections(ln)
 	go commandHandler.Listen()
 
 	hold()
@@ -83,6 +68,7 @@ func toConn(conn net.Conn) {
 	serverConn, err := net.Dial("tcp", host.Addr)
 	if err != nil {
 		log.Printf("Couldn't connect to %s (%s)", host.Name, host.Addr)
+		conn.Close()
 		return
 	}
 	reverseProxy := tcpproxy.NewReverseProxy(conn, serverConn)
@@ -120,7 +106,12 @@ func healthCheck() {
 	}
 }
 
-func acceptConnections(ln net.Listener) {
+func start() {
+	ln, err := net.Listen("tcp", proxyService.Config.Addr)
+	if err != nil {
+		log.Fatalf("Couldn't start the server: %v", err)
+	}
+	log.Printf("Listening on %s", proxyService.Config.Addr)
 	for {
 		conn, _ := ln.Accept()
 		go toConn(conn)
@@ -132,4 +123,17 @@ func registerCommands(cmdHandler *cmd.CommandHandler, proxyService *tcpproxy.Pro
 	cmdHandler.Register("rem", cmds.NewRemCommand(proxyService).Handle)
 	cmdHandler.Register("list", cmds.NewListCommand(proxyService).Handle)
 	cmdHandler.Register("save", cmds.NewSaveCommand(proxyService, ConfigPath).Handle)
+}
+
+func loadConfig() *config.Config {
+	cnf, cnfErr := config.Load(ConfigPath)
+
+	if cnfErr != nil {
+		cnf = config.Default()
+		creErr := config.Create(ConfigPath, cnf)
+		if creErr != nil {
+			log.Fatal("Couldn't load the Config")
+		}
+	}
+	return cnf
 }

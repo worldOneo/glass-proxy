@@ -48,3 +48,21 @@ func (p *ProxyService) LoadHosts() {
 	}
 	p.Hosts = hosts
 }
+
+// AddHost adds a host and adds it to the config
+func (p *ProxyService) AddHost(host config.HostConfig) {
+	p.Config.Hosts = append(p.Config.Hosts, host)
+	p.LoadHosts()
+}
+
+// RemHost removes a host
+func (p *ProxyService) RemHost(name string) {
+	hosts := make([]config.HostConfig, 0)
+	for _, host := range p.Config.Hosts {
+		if host.Name != name {
+			hosts = append(hosts, host)
+		}
+	}
+	p.Config.Hosts = hosts
+	p.LoadHosts()
+}

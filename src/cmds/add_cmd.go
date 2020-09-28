@@ -28,9 +28,8 @@ func (a *AddCmd) Handle(args []string) {
 
 	name := args[0]
 	addr := args[1]
-	a.proxyService.Config.Hosts = append(a.proxyService.Config.Hosts, config.HostConfig{
+	a.proxyService.AddHost(config.HostConfig{
 		Name: name,
 		Addr: addr,
 	})
-	a.proxyService.LoadHosts()
 }

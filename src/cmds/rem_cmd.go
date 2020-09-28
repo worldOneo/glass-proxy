@@ -3,7 +3,6 @@ package cmds
 import (
 	"fmt"
 
-	"github.com/worldOneo/glass-proxy/src/config"
 	"github.com/worldOneo/glass-proxy/src/tcpproxy"
 )
 
@@ -27,12 +26,5 @@ func (r *RemCmd) Handle(args []string) {
 	}
 
 	name := args[0]
-	hosts := make([]config.HostConfig, 0)
-	for _, host := range r.proxyService.Config.Hosts {
-		if host.Name != name {
-			hosts = append(hosts, host)
-		}
-	}
-	r.proxyService.Config.Hosts = hosts
-	r.proxyService.LoadHosts()
+	r.proxyService.RemHost(name)
 }
