@@ -30,6 +30,22 @@ This is the default configuration (the file `glass.proxy.json`):
 | logConnections | if the connections successful connections should be logged
 | healthCheckSeconds | The time (in seconds) between server health checks
 
+# CLI
+Some config-values can be set in the start command.
+```
+  -addr string
+        The addr to start the server on. (default "0.0.0.0:25565")
+  -health int
+        The time (in seconds) between health checks. (default 5)
+  -log
+        Log connections which where successfully bridged. (default true)
+  -save
+        Save the config when the server is stopped. (default false)
+```
+e.g: `$ main -save=false -log=true -health=3 -addr="0.0.0.0:1234"`  
+(or IPv6): `$ main -save=false -log=true -health=3 -addr="[::]:1234"`
+
+
 # Health Checks
 The servers are checked regularly (based on the config `healthCheckSeconds`) if they can be reached. If not no client will be connected to that server.
 
