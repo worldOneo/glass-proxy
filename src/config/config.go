@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"os"
 )
@@ -35,6 +36,7 @@ func Load(path string) (*Config, error) {
 	if parseErr != nil {
 		return nil, parseErr
 	}
+	config.fillFlags()
 	return &config, nil
 }
 
@@ -54,7 +56,7 @@ func Create(path string, config *Config) error {
 
 // Default returns a default config
 func Default() *Config {
-	return &Config{
+	conf := &Config{
 		Addr: "0.0.0.0:25565",
 		Hosts: []HostConfig{
 			HostConfig{
@@ -66,4 +68,14 @@ func Default() *Config {
 		HealthCheckTime:   5,
 		SaveConfigOnClose: false,
 	}
+	conf.fillFlags()
+	return conf
+}
+
+func (c *Config) fillFlags() {
+	flag.BoolVar(&c.LoggConnections, "log", c.LoggConnections, "Log connections which where successfully bridged.")
+	flag.BoolVar(&c.SaveConfigOnClose, "save", c.SaveConfigOnClose, "Save the config when the server is stopped.")
+	flag.StringVar(&c.Addr, "addr", c.Addr, "The addr to start the server on.")
+	flag.IntVar(&c.HealthCheckTime, "health", c.HealthCheckTime, "The time (in seconds) between health checks.")
+	flag.Parse()
 }
