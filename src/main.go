@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -43,9 +42,7 @@ func main() {
 	proxyService.LoadHosts()
 
 	commandHandler := cmd.NewCommandHandler()
-	commandHandler.Register("add", cmds.NewAddCommand(proxyService).Handle)
-	commandHandler.Register("rem", cmds.NewRemCommand(proxyService).Handle)
-	commandHandler.Register("list", cmds.NewListCommand(proxyService).Handle)
+	registerCommands(commandHandler, proxyService)
 
 	ln, err := net.Listen("tcp", proxyService.Config.Addr)
 	if err != nil {
@@ -58,11 +55,23 @@ func main() {
 	go acceptConnections(ln)
 	go commandHandler.Listen()
 
+	hold()
+	stop(proxyService)
+	log.Println("Stoping...")
+	return
+}
+
+func hold() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	fmt.Println("Stoping...")
-	return
+}
+
+func stop(proxyService *tcpproxy.ProxyService) {
+	if proxyService.Config.SaveConfigOnClose {
+		log.Println("Saving config...")
+		config.Create(ConfigPath, proxyService.Config)
+	}
 }
 
 func toConn(conn net.Conn) {
@@ -77,7 +86,7 @@ func toConn(conn net.Conn) {
 		return
 	}
 	reverseProxy := tcpproxy.NewReverseProxy(conn, serverConn)
-	go reverseProxy.Pipe()
+	reverseProxy.Pipe()
 
 	if proxyService.Config.LoggConnections {
 		log.Printf("%s Connected to %s (%s)", conn.RemoteAddr(), host.Name, host.Addr)
@@ -116,4 +125,11 @@ func acceptConnections(ln net.Listener) {
 		conn, _ := ln.Accept()
 		go toConn(conn)
 	}
+}
+
+func registerCommands(cmdHandler *cmd.CommandHandler, proxyService *tcpproxy.ProxyService) {
+	cmdHandler.Register("add", cmds.NewAddCommand(proxyService).Handle)
+	cmdHandler.Register("rem", cmds.NewRemCommand(proxyService).Handle)
+	cmdHandler.Register("list", cmds.NewListCommand(proxyService).Handle)
+	cmdHandler.Register("save", cmds.NewSaveCommand(proxyService, ConfigPath).Handle)
 }

@@ -40,6 +40,7 @@ The proxy selects a random server for every connection. This way the load will b
 While the proxy is running you can add/remove server
 | cmd | Action |
 | --- | --- |
-| `add <Name> <addr>` | add a server to the proxy which is then used in the Load Balancer |
-| `rem <Name>` | remove a server from the proxy (Opened connections will stay but no new connections will be created) |
-| `list` | lists all servers which are registered |
+| `add <Name> <addr>` | Add a server to the proxy which is then used in the Load Balancer |
+| `rem <Name>` | Remove a server from the proxy (Opened connections will stay but no new connections will be created) |
+| `list` | Lists all servers which are registered |
+| `save` | Saves the config to the config file (Overwrites the old one)

@@ -22,8 +22,14 @@ type ReverseProxy struct {
 
 // Pipe establisches a connection between both ends
 func (r *ReverseProxy) Pipe() {
-	go r.biConn.ConnectSend(1024)
-	go r.biConn.ConnectRespond(1024)
+	go r.pipeBothAndClose()
+}
+
+func (r *ReverseProxy) pipeBothAndClose() {
+	go r.biConn.ConnectSend()
+	r.biConn.ConnectRespond()
+	r.biConn.Conn1.Close()
+	r.biConn.Conn2.Close()
 }
 
 // NewReverseProxy creates a new reverse tcp Proxy

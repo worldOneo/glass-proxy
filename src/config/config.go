@@ -8,10 +8,11 @@ import (
 
 // Config the configuration for the ProxyService
 type Config struct {
-	Addr            string       `json:"addr"`
-	Hosts           []HostConfig `json:"hosts"`
-	LoggConnections bool         `json:"logConnections"`
-	HealthCheckTime int          `json:"healthCheckSeconds"`
+	Addr              string       `json:"addr"`
+	Hosts             []HostConfig `json:"hosts"`
+	LoggConnections   bool         `json:"logConnections"`
+	HealthCheckTime   int          `json:"healthCheckSeconds"`
+	SaveConfigOnClose bool         `json:"saveConfigOnClose"`
 }
 
 // HostConfig a config for a specific single host
@@ -61,7 +62,8 @@ func Default() *Config {
 				Addr: "localhost:25580",
 			},
 		},
-		LoggConnections: true,
-		HealthCheckTime: 5,
+		LoggConnections:   true,
+		HealthCheckTime:   5,
+		SaveConfigOnClose: false,
 	}
 }

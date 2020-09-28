@@ -11,7 +11,11 @@ type CommandHandler struct {
 	commandMap map[string]func([]string)
 }
 
-const helpText = "====COMMANDS====\nadd <NAME> <ADDR> Add a server\nrem <NAME> Remove a server\nlist show all servers"
+const helpText = `====COMMANDS====
+add <NAME> <ADDR> Add a server
+rem <NAME> Remove a server
+list show all servers
+save saves the config (overwrites the old one)`
 
 // NewCommandHandler creates a new CommandHandler
 func NewCommandHandler() *CommandHandler {
