@@ -60,14 +60,14 @@ func stop(proxyService *tcpproxy.ProxyService) {
 }
 
 func toConn(conn net.Conn) {
-	host := getHost()
+	host := proxyService.GetHost()
 	if host == nil {
 		conn.Close()
 		return
 	}
-	serverConn, err := net.Dial("tcp", host.Addr)
+	serverConn, err := proxyService.Dial("tcp", host.Addr)
 	if err != nil {
-		log.Printf("Couldn't connect to %s (%s)", host.Name, host.Addr)
+		log.Printf("Couldn't connect to %s (%s) \"%v\"", host.Name, host.Addr, err)
 		conn.Close()
 		return
 	}
@@ -77,26 +77,6 @@ func toConn(conn net.Conn) {
 	if proxyService.Config.LoggConnections {
 		log.Printf("%s Connected to %s (%s)", conn.RemoteAddr(), host.Name, host.Addr)
 	}
-}
-
-func getHost() *handler.TCPHost {
-	l := len(proxyService.Hosts)
-	if l == 0 {
-		return nil
-	}
-	i := rand.Intn(l)
-	h := proxyService.Hosts[i]
-	if h.Status.Online {
-		return h
-	}
-	mx := i + l
-	for j := i; j < mx; j++ {
-		h = proxyService.Hosts[j%l]
-		if h.Status.Online {
-			return h
-		}
-	}
-	return nil
 }
 
 func healthCheck() {

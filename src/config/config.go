@@ -10,6 +10,7 @@ import (
 // Config the configuration for the ProxyService
 type Config struct {
 	Addr              string       `json:"addr"`
+	Interfaces        []string     `json:"interfaces"`
 	Hosts             []HostConfig `json:"hosts"`
 	LoggConnections   bool         `json:"logConnections"`
 	HealthCheckTime   int          `json:"healthCheckSeconds"`
@@ -67,6 +68,7 @@ func Default() *Config {
 		LoggConnections:   true,
 		HealthCheckTime:   5,
 		SaveConfigOnClose: false,
+		Interfaces:        []string{},
 	}
 	conf.fillFlags()
 	return conf

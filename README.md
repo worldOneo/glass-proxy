@@ -10,20 +10,23 @@ This is the default configuration (the file `glass.proxy.json`):
 ```json
 {
     "addr": "0.0.0.0:25565",
+    "interfaces": [],
     "hosts": [
         {
             "name": "Server-1",
             "addr": "localhost:25580"
         }
     ],
-    "logConnections": true,
-    "healthCheckSeconds": 5
+    "logConnections": false,
+    "healthCheckSeconds": 1000,
+    "saveConfigOnClose": false
 }
 ```
 
 | Value | Meaning |
 | --- | --- |
-| addr | The address to run the proxy on
+| addr | The address to run the proxy on |
+| interfaces | A list of network interfaces to use for out going connections. (If empty the default will be used)
 | hosts | A list of hosts |
 | (host) name | The name of the host  (for logging)
 | (host) addr | The address of the host server
