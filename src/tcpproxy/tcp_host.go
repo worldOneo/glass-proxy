@@ -1,4 +1,4 @@
-package handler
+package tcpproxy
 
 import "net"
 
@@ -33,11 +33,4 @@ func (T *TCPHost) IsRunning() bool {
 	}
 	defer conn.Close()
 	return true
-}
-
-// CheckHosts updates the statuses of the hosts
-func CheckHosts(tcpHosts []*TCPHost) {
-	for _, host := range tcpHosts {
-		host.Status.Online = host.IsRunning()
-	}
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/worldOneo/glass-proxy/src/cmd"
 	"github.com/worldOneo/glass-proxy/src/cmds"
 	"github.com/worldOneo/glass-proxy/src/config"
-	"github.com/worldOneo/glass-proxy/src/handler"
 	"github.com/worldOneo/glass-proxy/src/tcpproxy"
 )
 
@@ -75,13 +74,13 @@ func toConn(conn net.Conn) {
 	reverseProxy.Pipe()
 
 	if proxyService.Config.LoggConnections {
-		log.Printf("%s Connected to %s (%s)", conn.RemoteAddr(), host.Name, host.Addr)
+		log.Printf("%s Connected to %s (%s) over %s", conn.RemoteAddr(), host.Name, host.Addr, serverConn.LocalAddr())
 	}
 }
 
 func healthCheck() {
 	for {
-		handler.CheckHosts(proxyService.Hosts)
+		proxyService.HealthCheck()
 		time.Sleep(time.Duration(proxyService.Config.HealthCheckTime) * time.Second)
 	}
 }

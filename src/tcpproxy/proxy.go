@@ -12,7 +12,7 @@ import (
 
 // ProxyService with everything we need
 type ProxyService struct {
-	Hosts          []*handler.TCPHost
+	Hosts          []*TCPHost
 	Config         *config.Config
 	CommandHandler *cmd.CommandHandler
 }
@@ -43,9 +43,9 @@ func NewReverseProxy(conn1 net.Conn, conn2 net.Conn) *ReverseProxy {
 
 // LoadHosts populates ProxyService.Hosts from ProxyService.Config.Hosts
 func (p *ProxyService) LoadHosts() {
-	hosts := make([]*handler.TCPHost, 0)
+	hosts := make([]*TCPHost, 0)
 	for _, host := range p.Config.Hosts {
-		newHost := handler.NewTCPHost(host.Name, host.Addr)
+		newHost := NewTCPHost(host.Name, host.Addr)
 		hosts = append(hosts, newHost)
 	}
 	p.Hosts = hosts
@@ -70,7 +70,7 @@ func (p *ProxyService) RemHost(name string) {
 }
 
 // GetHost gets a random running host or nil if no host is available
-func (p *ProxyService) GetHost() *handler.TCPHost {
+func (p *ProxyService) GetHost() *TCPHost {
 	l := len(p.Hosts)
 	if l == 0 {
 		return nil
@@ -108,23 +108,8 @@ func (p *ProxyService) Dial(protocol string, addr string) (net.Conn, error) {
 			continue
 		}
 		for _, pladdr := range addrs {
-			var targetIP string
-			var resError error
-			ip, _, err := net.ParseCIDR(pladdr.String())
-			if err != nil {
-				return nil, err
-			}
-			if ip.IsUnspecified() {
-				continue
-			}
-			if ip.To4().Equal(ip) {
-				targetIP = ip.String()
-			} else {
-				targetIP = "[" + ip.String() + "]"
-			}
-			d := net.Dialer{}
-			d.LocalAddr, resError = net.ResolveTCPAddr(protocol, targetIP+":0")
-			if resError != nil {
+			d, dialError := createDialer(protocol, pladdr.String())
+			if dialError != nil {
 				continue
 			}
 			conn, err := d.Dial(protocol, addr)
@@ -135,4 +120,34 @@ func (p *ProxyService) Dial(protocol string, addr string) (net.Conn, error) {
 		}
 	}
 	return nil, err
+}
+
+// HealthCheck checks the health of every given server and updates their status
+func (p *ProxyService) HealthCheck() {
+	for _, h := range p.Hosts {
+		d, err := p.Dial("tcp", h.Addr)
+		if err != nil {
+			h.Status.Online = false
+			continue
+		}
+		defer d.Close()
+		h.Status.Online = true
+	}
+}
+
+func createDialer(protocol, addr string) (*net.Dialer, error) {
+	var resError error
+	var targetIP string
+	ip, _, err := net.ParseCIDR(addr)
+	if err != nil {
+		return nil, err
+	}
+	if ip.To4().Equal(ip) {
+		targetIP = ip.String()
+	} else {
+		targetIP = "[" + ip.String() + "]"
+	}
+	d := net.Dialer{}
+	d.LocalAddr, resError = net.ResolveTCPAddr(protocol, targetIP+":0")
+	return &d, resError
 }
