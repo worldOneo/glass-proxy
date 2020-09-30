@@ -130,7 +130,7 @@ func (p *ProxyService) HealthCheck() {
 			h.Status.Online = false
 			continue
 		}
-		defer d.Close()
+		d.Close()
 		h.Status.Online = true
 	}
 }
