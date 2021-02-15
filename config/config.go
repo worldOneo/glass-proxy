@@ -12,7 +12,7 @@ type Config struct {
 	Addr              string       `json:"addr"`
 	Interfaces        []string     `json:"interfaces"`
 	Hosts             []HostConfig `json:"hosts"`
-	LoggConnections   bool         `json:"logConnections"`
+	LogConfig         LogConfig    `json:"LogConfiguration"`
 	HealthCheckTime   int          `json:"healthCheckSeconds"`
 	SaveConfigOnClose bool         `json:"saveConfigOnClose"`
 }
@@ -21,6 +21,12 @@ type Config struct {
 type HostConfig struct {
 	Name string `json:"name"`
 	Addr string `json:"addr"`
+}
+
+// LogConfig defines what should be logged and what not
+type LogConfig struct {
+	LogConnections bool `json:"logConnections"`
+	LogDisconnect  bool `json:"logDisconnect"`
 }
 
 // Load loads a config from the
@@ -60,12 +66,15 @@ func Default() *Config {
 	conf := &Config{
 		Addr: "0.0.0.0:25565",
 		Hosts: []HostConfig{
-			HostConfig{
+			{
 				Name: "Server-1",
 				Addr: "localhost:25580",
 			},
 		},
-		LoggConnections:   true,
+		LogConfig: LogConfig{
+			LogConnections: true,
+			LogDisconnect:  false,
+		},
 		HealthCheckTime:   5,
 		SaveConfigOnClose: false,
 		Interfaces:        []string{},
@@ -75,7 +84,8 @@ func Default() *Config {
 }
 
 func (c *Config) fillFlags() {
-	flag.BoolVar(&c.LoggConnections, "log", c.LoggConnections, "Log connections which where successfully bridged.")
+	flag.BoolVar(&c.LogConfig.LogConnections, "logc", c.LogConfig.LogConnections, "Log connections which where successfully bridged.")
+	flag.BoolVar(&c.LogConfig.LogDisconnect, "logd", c.LogConfig.LogDisconnect, "Log connections which where closed.")
 	flag.BoolVar(&c.SaveConfigOnClose, "save", c.SaveConfigOnClose, "Save the config when the server is stopped.")
 	flag.StringVar(&c.Addr, "addr", c.Addr, "The addr to start the server on.")
 	flag.IntVar(&c.HealthCheckTime, "health", c.HealthCheckTime, "The time (in seconds) between health checks.")

@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/worldOneo/glass-proxy/src/cmd"
-	"github.com/worldOneo/glass-proxy/src/cmds"
-	"github.com/worldOneo/glass-proxy/src/config"
-	"github.com/worldOneo/glass-proxy/src/tcpproxy"
+	"github.com/worldOneo/glass-proxy/cmd"
+	"github.com/worldOneo/glass-proxy/cmds"
+	"github.com/worldOneo/glass-proxy/config"
+	"github.com/worldOneo/glass-proxy/tcpproxy"
 )
 
 //
@@ -20,13 +20,11 @@ const (
 	ConfigPath = "glass.proxy.json"
 )
 
-var proxyService *tcpproxy.ProxyService
-
 func main() {
 	cnf := loadConfig()
 	rand.Seed(time.Now().UnixNano())
 
-	proxyService = &tcpproxy.ProxyService{
+	proxyService := &tcpproxy.ProxyService{
 		Config:         cnf,
 		CommandHandler: cmd.NewCommandHandler(),
 	}
@@ -35,8 +33,8 @@ func main() {
 	commandHandler := cmd.NewCommandHandler()
 	registerCommands(commandHandler, proxyService)
 
-	go start()
-	go healthCheck()
+	go start(proxyService)
+	go healthCheck(proxyService)
 	go commandHandler.Listen()
 
 	hold()
@@ -58,10 +56,18 @@ func stop(proxyService *tcpproxy.ProxyService) {
 	}
 }
 
-func toConn(conn net.Conn) {
+func toConn(proxyService *tcpproxy.ProxyService, conn net.Conn) {
 	host := proxyService.GetHost()
-	if host == nil {
+
+	defer func() {
+		if proxyService.Config.LogConfig.LogDisconnect {
+			log.Printf("%s Disconnected", conn.RemoteAddr())
+		}
 		conn.Close()
+	}()
+
+	if host == nil {
+		log.Printf("No healthy host available.")
 		return
 	}
 	serverConn, err := proxyService.Dial("tcp", host.Addr)
@@ -70,22 +76,22 @@ func toConn(conn net.Conn) {
 		conn.Close()
 		return
 	}
-	reverseProxy := tcpproxy.NewReverseProxy(conn, serverConn)
-	reverseProxy.Pipe()
 
-	if proxyService.Config.LoggConnections {
+	if proxyService.Config.LogConfig.LogConnections {
 		log.Printf("%s Connected to %s (%s) over %s", conn.RemoteAddr(), host.Name, host.Addr, serverConn.LocalAddr())
 	}
+
+	host.AddReverseProxy(conn, serverConn)
 }
 
-func healthCheck() {
+func healthCheck(proxyService *tcpproxy.ProxyService) {
 	for {
 		proxyService.HealthCheck()
 		time.Sleep(time.Duration(proxyService.Config.HealthCheckTime) * time.Second)
 	}
 }
 
-func start() {
+func start(proxyService *tcpproxy.ProxyService) {
 	ln, err := net.Listen("tcp", proxyService.Config.Addr)
 	if err != nil {
 		log.Fatalf("Couldn't start the server: %v", err)
@@ -93,7 +99,7 @@ func start() {
 	log.Printf("Listening on %s", proxyService.Config.Addr)
 	for {
 		conn, _ := ln.Accept()
-		go toConn(conn)
+		go toConn(proxyService, conn)
 	}
 }
 

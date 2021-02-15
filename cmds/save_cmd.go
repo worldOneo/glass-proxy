@@ -1,8 +1,8 @@
 package cmds
 
 import (
-	"github.com/worldOneo/glass-proxy/src/config"
-	"github.com/worldOneo/glass-proxy/src/tcpproxy"
+	"github.com/worldOneo/glass-proxy/config"
+	"github.com/worldOneo/glass-proxy/tcpproxy"
 )
 
 // SaveCmd saves the config

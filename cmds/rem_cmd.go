@@ -3,7 +3,7 @@ package cmds
 import (
 	"fmt"
 
-	"github.com/worldOneo/glass-proxy/src/tcpproxy"
+	"github.com/worldOneo/glass-proxy/tcpproxy"
 )
 
 // RemCmd is a command to remove a server from the Proxy

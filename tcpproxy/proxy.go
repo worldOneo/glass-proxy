@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"net"
 
-	"github.com/worldOneo/glass-proxy/src/cmd"
-	"github.com/worldOneo/glass-proxy/src/config"
-	"github.com/worldOneo/glass-proxy/src/handler"
+	"github.com/worldOneo/glass-proxy/cmd"
+	"github.com/worldOneo/glass-proxy/config"
+	"github.com/worldOneo/glass-proxy/handler"
 )
 
 // ProxyService with everything we need
@@ -125,13 +125,7 @@ func (p *ProxyService) Dial(protocol string, addr string) (net.Conn, error) {
 // HealthCheck checks the health of every given server and updates their status
 func (p *ProxyService) HealthCheck() {
 	for _, h := range p.Hosts {
-		d, err := p.Dial("tcp", h.Addr)
-		if err != nil {
-			h.Status.Online = false
-			continue
-		}
-		d.Close()
-		h.Status.Online = true
+		h.HealthCheck()
 	}
 }
 

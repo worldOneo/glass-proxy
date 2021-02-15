@@ -3,8 +3,8 @@ package cmds
 import (
 	"fmt"
 
-	"github.com/worldOneo/glass-proxy/src/config"
-	"github.com/worldOneo/glass-proxy/src/tcpproxy"
+	"github.com/worldOneo/glass-proxy/config"
+	"github.com/worldOneo/glass-proxy/tcpproxy"
 )
 
 // AddCmd is a command to add a server to the Proxy

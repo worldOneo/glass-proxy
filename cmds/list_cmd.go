@@ -5,7 +5,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/worldOneo/glass-proxy/src/tcpproxy"
+	"github.com/worldOneo/glass-proxy/tcpproxy"
 )
 
 // ListCmd is a command to add a server to the Proxy
@@ -26,8 +26,8 @@ func (l *ListCmd) Handle(args []string) {
 	w.Init(os.Stdout, 8, 8, 0, '\t', 0)
 	defer w.Flush()
 
-	fmt.Fprintf(w, "%s\t|%s\t|%s\t|%s\t\n", "Index", "Name", "Address", "Online")
+	fmt.Fprintf(w, "%s\t|%s\t|%s\t|%s\t|%s\t\n", "Index", "Name", "Address", "Online", "Connections")
 	for i, h := range l.proxyService.Hosts {
-		fmt.Fprintf(w, "%d\t|%s\t|%s\t|%t\t\n", i, h.Name, h.Addr, h.Status.Online)
+		fmt.Fprintf(w, "%d\t|%s\t|%s\t|%t\t|%d\t\n", i, h.Name, h.Addr, h.Status.Online, len(h.Status.Connections))
 	}
 }
