@@ -22,13 +22,13 @@ const (
 
 func main() {
 	cnf := loadConfig()
+	bootProxy(cnf)
+}
+
+func bootProxy(cnf *config.Config) {
 	rand.Seed(time.Now().UnixNano())
 
-	proxyService := &tcpproxy.ProxyService{
-		Config:         cnf,
-		CommandHandler: cmd.NewCommandHandler(),
-	}
-	proxyService.LoadHosts()
+	proxyService := tcpproxy.NewProxyService(cnf)
 
 	commandHandler := cmd.NewCommandHandler()
 	registerCommands(commandHandler, proxyService)

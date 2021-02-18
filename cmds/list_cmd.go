@@ -28,6 +28,6 @@ func (l *ListCmd) Handle(args []string) {
 
 	fmt.Fprintf(w, "%s\t|%s\t|%s\t|%s\t|%s\t\n", "Index", "Name", "Address", "Online", "Connections")
 	for i, h := range l.proxyService.Hosts {
-		fmt.Fprintf(w, "%d\t|%s\t|%s\t|%t\t|%d\t\n", i, h.Name, h.Addr, h.Status.Online, len(h.Status.Connections))
+		fmt.Fprintf(w, "%d\t|%s\t|%s\t|%t\t|%d\t\n", i, h.Name, h.Addr, h.IsOnline(), h.GetConnectionCount())
 	}
 }

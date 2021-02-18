@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/rand"
 	"net"
+	"sync"
 
 	"github.com/worldOneo/glass-proxy/cmd"
 	"github.com/worldOneo/glass-proxy/config"
@@ -13,6 +14,7 @@ import (
 // ProxyService with everything we need
 type ProxyService struct {
 	Hosts          []*TCPHost
+	HostsLock      *sync.RWMutex
 	Config         *config.Config
 	CommandHandler *cmd.CommandHandler
 }
@@ -41,8 +43,22 @@ func NewReverseProxy(conn1 net.Conn, conn2 net.Conn) *ReverseProxy {
 	}
 }
 
+// NewProxyService creates a new Proxy Service and starts the cleaner
+func NewProxyService(cnf *config.Config) *ProxyService {
+	proxy := &ProxyService{
+		Config:         cnf,
+		CommandHandler: cmd.NewCommandHandler(),
+		HostsLock:      &sync.RWMutex{},
+	}
+	proxy.LoadHosts()
+
+	return proxy
+}
+
 // LoadHosts populates ProxyService.Hosts from ProxyService.Config.Hosts
 func (p *ProxyService) LoadHosts() {
+	p.HostsLock.Lock()
+	defer p.HostsLock.Unlock()
 	hosts := make([]*TCPHost, 0)
 	for _, host := range p.Config.Hosts {
 		newHost := NewTCPHost(host.Name, host.Addr)
@@ -53,12 +69,16 @@ func (p *ProxyService) LoadHosts() {
 
 // AddHost adds a host and adds it to the config
 func (p *ProxyService) AddHost(host config.HostConfig) {
+	p.HostsLock.Lock()
+	defer p.HostsLock.Unlock()
 	p.Config.Hosts = append(p.Config.Hosts, host)
 	p.LoadHosts()
 }
 
 // RemHost removes a host
 func (p *ProxyService) RemHost(name string) {
+	p.HostsLock.Lock()
+	defer p.HostsLock.Unlock()
 	hosts := make([]config.HostConfig, 0)
 	for _, host := range p.Config.Hosts {
 		if host.Name != name {
@@ -71,19 +91,21 @@ func (p *ProxyService) RemHost(name string) {
 
 // GetHost gets a random running host or nil if no host is available
 func (p *ProxyService) GetHost() *TCPHost {
+	p.HostsLock.RLock()
+	defer p.HostsLock.RUnlock()
 	l := len(p.Hosts)
 	if l == 0 {
 		return nil
 	}
 	i := rand.Intn(l)
 	h := p.Hosts[i]
-	if h.Status.Online {
+	if h.IsOnline() {
 		return h
 	}
 	mx := i + l
 	for j := i; j < mx; j++ {
 		h = p.Hosts[j%l]
-		if h.Status.Online {
+		if h.IsOnline() {
 			return h
 		}
 	}
@@ -124,6 +146,8 @@ func (p *ProxyService) Dial(protocol string, addr string) (net.Conn, error) {
 
 // HealthCheck checks the health of every given server and updates their status
 func (p *ProxyService) HealthCheck() {
+	p.HostsLock.RLock()
+	defer p.HostsLock.RUnlock()
 	for _, h := range p.Hosts {
 		h.HealthCheck()
 	}

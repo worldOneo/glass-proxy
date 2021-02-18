@@ -17,8 +17,11 @@ This is the default configuration (the file `glass.proxy.json`):
             "addr": "localhost:25580"
         }
     ],
-    "logConnections": false,
-    "healthCheckSeconds": 1000,
+    "LogConfiguration": {
+        "logConnections": true,
+        "logDisconnect": false
+    },
+    "healthCheckSeconds": 5,
     "saveConfigOnClose": false
 }
 ```
@@ -30,27 +33,30 @@ This is the default configuration (the file `glass.proxy.json`):
 | hosts | A list of hosts |
 | (host) name | The name of the host  (for logging)
 | (host) addr | The address of the host server
-| logConnections | if the connections successful connections should be logged
+| (LogConfiguration) logConnections | if the connections successful connections should be logged
+| (LogConfiguration) logDisconnect | log when a connection is cloesed
 | healthCheckSeconds | The time (in seconds) between server health checks
 
 # CLI
 Some config-values can be set in the start command.
 ```
   -addr string
-        The addr to start the server on. (default "0.0.0.0:25565")
+        The addr to start the server on. (default "0.0.0.0:25565")      
   -health int
-        The time (in seconds) between health checks. (default 5)
-  -log
+        The time (in seconds) between health checks. (default 5)        
+  -logc
         Log connections which where successfully bridged. (default true)
+  -logd
+        Log connections which where closed.
   -save
-        Save the config when the server is stopped. (default false)
+        Save the config when the server is stopped.
 ```
-e.g: `$ main -save=false -log=true -health=3 -addr="0.0.0.0:1234"`  
-(or IPv6): `$ main -save=false -log=true -health=3 -addr="[::]:1234"`
+e.g: `$ ./glass-proxy -save=false -logc=true -health=3 -addr="0.0.0.0:1234"`  
+(or IPv6): `$ ./glass-proxy -save=false -logc=true -health=3 -addr="[::]:1234"`
 
 
 # Health Checks
-The servers are checked regularly (based on the config `healthCheckSeconds`) if they can be reached. If not no client will be connected to that server.
+The servers are checked regularly (based on the config `healthCheckSeconds`) if they can be reached (only one connection needed to verify). If not no client will be connected to that server.
 
 # Load Balancing
 The proxy selects a random server for every connection. This way the load will be (pseudo) randomly balanced between every registered host. The Health Checks ensure that the Server is reachable.
