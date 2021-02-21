@@ -53,6 +53,7 @@ func (p *Service) LoadHosts() {
 	p.Hosts = hosts
 }
 
+// Handle starts a conection (or redirects a datagram) to the client address
 func (p *Service) Handle(clientaddr *net.UDPAddr, datagram []byte, serviceconn *net.UDPConn) error {
 	host := p.Cache.Get(clientaddr)
 	if host == nil {
@@ -68,6 +69,7 @@ func (p *Service) Handle(clientaddr *net.UDPAddr, datagram []byte, serviceconn *
 	return nil
 }
 
+// HealthCheck (not implemented)
 func (p *Service) HealthCheck() {
 	for {
 		p.HostsLock.RLock()
@@ -79,6 +81,7 @@ func (p *Service) HealthCheck() {
 	}
 }
 
+// Run starts the UDP proxy
 func (p *Service) Run() error {
 	laddr, err := net.ResolveUDPAddr("udp", p.Config.Addr)
 	if err != nil {
@@ -88,7 +91,7 @@ func (p *Service) Run() error {
 
 	go p.HealthCheck()
 
-	serviceconn, err := net.ListenUDP("udp", laddr)
+	serviceconn, err := net.ListenUDP(p.Config.Protocol, laddr)
 	if err != nil {
 		log.Fatalf("Unabele to listen on \"%s\"", laddr)
 		return err
@@ -119,6 +122,7 @@ func (p *Service) GetHost() Host {
 	return p.Hosts[i]
 }
 
+// AddHost adds a host to this proxy
 func (p *Service) AddHost(hostconfig config.HostConfig) {
 	p.HostsLock.Lock()
 	defer p.HostsLock.Unlock()
@@ -126,6 +130,7 @@ func (p *Service) AddHost(hostconfig config.HostConfig) {
 	p.Hosts = append(p.Hosts, host)
 }
 
+// RemHost removes a host from this proxy by host
 func (p *Service) RemHost(name string) {
 	p.HostsLock.Lock()
 	hosts := make([]config.HostConfig, 0)
@@ -139,10 +144,13 @@ func (p *Service) RemHost(name string) {
 	p.LoadHosts()
 }
 
+// GetConfig returns the config.
+// changes to the config returned apply to the service.
 func (p *Service) GetConfig() *config.Config {
 	return p.Config
 }
 
+// ListHosts returns all the active hosts of this proxy
 func (p *Service) ListHosts() []proxy.Host {
 	p.HostsLock.RLock()
 	defer p.HostsLock.RUnlock()

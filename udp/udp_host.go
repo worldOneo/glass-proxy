@@ -9,6 +9,7 @@ import (
 	"github.com/worldOneo/glass-proxy/proxy"
 )
 
+// Host type of proxy.Host with Connect for UDP
 type Host interface {
 	proxy.Host
 	Connect([]byte, *net.UDPAddr, *net.UDPConn) error
@@ -66,10 +67,9 @@ func (U *host) GetStatus() proxy.HostStatus {
 	return U.Status
 }
 
+// IsOnline (not implemented) returns true
 func (U *HostStatus) IsOnline() bool {
-	U.RLock()
-	defer U.RUnlock()
-	return U.Online
+	return true
 }
 
 type udpData struct {
@@ -99,6 +99,7 @@ func (U *host) Connect(buff []byte, clientaddr *net.UDPAddr, serviceconn *net.UD
 	return
 }
 
+// Relay forwards packets from downstream to upstream/toaddr
 func Relay(downstream net.PacketConn, upstream *net.UDPConn, toaddr, fromaddr *net.UDPAddr) {
 	buffer := make([]byte, MUDS)
 

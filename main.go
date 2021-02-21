@@ -32,13 +32,13 @@ func main() {
 func bootProxy(cnf *config.Config) {
 	var service proxy.Service
 	switch strings.ToLower(cnf.Protocol) {
-	case "udp":
-		log.Printf("Starting UDP proxy on %s...", cnf.Addr)
+	case "udp", "udp4", "udp6":
+		log.Printf("Starting UDP (%s) proxy on %s...", cnf.Protocol, cnf.Addr)
 		udpService := udp.NewService(cnf)
 		go udpService.Run()
 		service = udpService
-	case "tcp":
-		log.Printf("Starting TCP proxy on %s...", cnf.Addr)
+	case "tcp", "tcp4", "tcp6":
+		log.Printf("Starting TCP (%s) proxy on %s...", cnf.Protocol, cnf.Addr)
 		tcpService := tcp.NewProxyService(cnf)
 		go tcpService.Run()
 		service = tcpService

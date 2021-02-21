@@ -9,6 +9,7 @@
 This is the default configuration (the file `glass.proxy.json`):
 ```json
 {
+    "protocol": "tcp",
     "addr": "0.0.0.0:25565",
     "interfaces": [],
     "hosts": [
@@ -28,14 +29,15 @@ This is the default configuration (the file `glass.proxy.json`):
 
 | Value | Meaning |
 | --- | --- |
+| protocol | The protocol the proxy should start. Currently supported: udp, udp4, udp6, tcp, tcp4, tcp6 |
 | addr | The address to run the proxy on |
-| interfaces | A list of network interfaces to use for out going connections. (If empty the default will be used)
+| interfaces | A list of network interfaces to use for out going connections. (If empty the default will be used) |
 | hosts | A list of hosts |
 | (host) name | The name of the host  (for logging)
 | (host) addr | The address of the host server
 | (LogConfiguration) logConnections | if the connections successful connections should be logged
 | (LogConfiguration) logDisconnect | log when a connection is cloesed
-| healthCheckSeconds | The time (in seconds) between server health checks
+| healthCheckSeconds | The time (in seconds) between server health checks (not available for UDP)
 
 # CLI
 Some config-values can be set in the start command.

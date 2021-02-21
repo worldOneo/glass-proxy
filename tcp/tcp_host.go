@@ -8,6 +8,7 @@ import (
 	"github.com/worldOneo/glass-proxy/proxy"
 )
 
+// Host type of proxy.Host with HealthCheck and AddReverseProxy
 type Host interface {
 	proxy.Host
 	HealthCheck() (bool, error)
@@ -100,6 +101,7 @@ func (T *host) IsOnline() bool {
 	return T.Status.IsOnline()
 }
 
+// IsOnline returns if the host is online
 func (T *HostStatus) IsOnline() bool {
 	T.RLock()
 	defer T.RUnlock()

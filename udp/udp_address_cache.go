@@ -6,17 +6,27 @@ import (
 	"time"
 )
 
+// Cache is a sync.RWMutex
+// Cache has an internal map which stores the items.
+// The map at least RLocks itself on every operation
+// Therefore taking the Lock will block every access.
 type Cache struct {
 	sync.RWMutex
 	internalMap map[string]*Item
 	holdingTime time.Duration
 }
 
+// Item an item holding a value and its last acces time.
+// The access time is used to determin if an item should be removed.
 type Item struct {
 	value  interface{}
 	access time.Time
 }
 
+// NewCache creates a new cache.
+// Items are removed after the given expiration time.
+// The map is cleaned at least every expireAfter time.
+// The map might be cleaned without delay.
 func NewCache(expireAfter time.Duration) *Cache {
 	cache := &Cache{
 		internalMap: make(map[string]*Item),
@@ -26,6 +36,7 @@ func NewCache(expireAfter time.Duration) *Cache {
 	return cache
 }
 
+// Put puts the ip and its corresponding item into the cache
 func (U *Cache) Put(ip *net.UDPAddr, host interface{}) {
 	U.Lock()
 	defer U.Unlock()
@@ -35,12 +46,14 @@ func (U *Cache) Put(ip *net.UDPAddr, host interface{}) {
 	}
 }
 
+// Remove forces the ip out of the cache
 func (U *Cache) Remove(ip *net.UDPAddr) {
 	U.Lock()
 	defer U.Unlock()
 	delete(U.internalMap, ip.String())
 }
 
+// Get returns the stored item coresbonding to a clients IP
 func (U *Cache) Get(ip *net.UDPAddr) interface{} {
 	U.RLock()
 	defer U.RUnlock()
