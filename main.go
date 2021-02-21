@@ -1,18 +1,21 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"math/rand"
-	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/worldOneo/glass-proxy/cmd"
 	"github.com/worldOneo/glass-proxy/cmds"
 	"github.com/worldOneo/glass-proxy/config"
-	"github.com/worldOneo/glass-proxy/tcpproxy"
+	"github.com/worldOneo/glass-proxy/proxy"
+	"github.com/worldOneo/glass-proxy/tcp"
+	"github.com/worldOneo/glass-proxy/udp"
 )
 
 //
@@ -22,23 +25,40 @@ const (
 
 func main() {
 	cnf := loadConfig()
+	rand.Seed(time.Now().UnixNano())
 	bootProxy(cnf)
 }
 
 func bootProxy(cnf *config.Config) {
-	rand.Seed(time.Now().UnixNano())
+	var service proxy.Service
+	switch strings.ToLower(cnf.Protocol) {
+	case "udp":
+		log.Printf("Starting UDP proxy on %s...", cnf.Addr)
+		udpService := udp.NewService(cnf)
+		go udpService.Run()
+		service = udpService
+	case "tcp":
+		log.Printf("Starting TCP proxy on %s...", cnf.Addr)
+		tcpService := tcp.NewProxyService(cnf)
+		go tcpService.Run()
+		service = tcpService
+	default:
+		log.Fatal(errors.New("invalid protocol. supported: tcp,udp"))
+	}
 
-	proxyService := tcpproxy.NewProxyService(cnf)
+	handler := cmd.NewCommandHandler()
+	handler.Register("add", cmds.NewAddCommand(service).Handle)
+	handler.Register("rem", cmds.NewRemCommand(service).Handle)
+	handler.Register("list", cmds.NewListCommand(service).Handle)
+	handler.Register("save", cmds.NewSaveCommand(service, ConfigPath).Handle)
 
-	commandHandler := cmd.NewCommandHandler()
-	registerCommands(commandHandler, proxyService)
-
-	go start(proxyService)
-	go healthCheck(proxyService)
-	go commandHandler.Listen()
+	go handler.Listen()
 
 	hold()
-	stop(proxyService)
+	if service.GetConfig().SaveConfigOnClose {
+		log.Println("Saving config...")
+		config.Create(ConfigPath, service.GetConfig())
+	}
 	log.Println("Stoping...")
 	return
 }
@@ -47,67 +67,6 @@ func hold() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-}
-
-func stop(proxyService *tcpproxy.ProxyService) {
-	if proxyService.Config.SaveConfigOnClose {
-		log.Println("Saving config...")
-		config.Create(ConfigPath, proxyService.Config)
-	}
-}
-
-func toConn(proxyService *tcpproxy.ProxyService, conn net.Conn) {
-	host := proxyService.GetHost()
-
-	defer func() {
-		if proxyService.Config.LogConfig.LogDisconnect {
-			log.Printf("%s Disconnected", conn.RemoteAddr())
-		}
-		conn.Close()
-	}()
-
-	if host == nil {
-		log.Printf("No healthy host available.")
-		return
-	}
-	serverConn, err := proxyService.Dial("tcp", host.Addr)
-	if err != nil {
-		log.Printf("Couldn't connect to %s (%s) \"%v\"", host.Name, host.Addr, err)
-		conn.Close()
-		return
-	}
-
-	if proxyService.Config.LogConfig.LogConnections {
-		log.Printf("%s Connected to %s (%s) over %s", conn.RemoteAddr(), host.Name, host.Addr, serverConn.LocalAddr())
-	}
-
-	host.AddReverseProxy(conn, serverConn)
-}
-
-func healthCheck(proxyService *tcpproxy.ProxyService) {
-	for {
-		proxyService.HealthCheck()
-		time.Sleep(time.Duration(proxyService.Config.HealthCheckTime) * time.Second)
-	}
-}
-
-func start(proxyService *tcpproxy.ProxyService) {
-	ln, err := net.Listen("tcp", proxyService.Config.Addr)
-	if err != nil {
-		log.Fatalf("Couldn't start the server: %v", err)
-	}
-	log.Printf("Listening on %s", proxyService.Config.Addr)
-	for {
-		conn, _ := ln.Accept()
-		go toConn(proxyService, conn)
-	}
-}
-
-func registerCommands(cmdHandler *cmd.CommandHandler, proxyService *tcpproxy.ProxyService) {
-	cmdHandler.Register("add", cmds.NewAddCommand(proxyService).Handle)
-	cmdHandler.Register("rem", cmds.NewRemCommand(proxyService).Handle)
-	cmdHandler.Register("list", cmds.NewListCommand(proxyService).Handle)
-	cmdHandler.Register("save", cmds.NewSaveCommand(proxyService, ConfigPath).Handle)
 }
 
 func loadConfig() *config.Config {

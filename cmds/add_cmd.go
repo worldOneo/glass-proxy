@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	"github.com/worldOneo/glass-proxy/config"
-	"github.com/worldOneo/glass-proxy/tcpproxy"
+	"github.com/worldOneo/glass-proxy/proxy"
 )
 
 // AddCmd is a command to add a server to the Proxy
 type AddCmd struct {
-	proxyService *tcpproxy.ProxyService
+	proxyService proxy.Service
 }
 
 // NewAddCommand creates a new AddCmd
-func NewAddCommand(proxyService *tcpproxy.ProxyService) *AddCmd {
+func NewAddCommand(proxyService proxy.Service) *AddCmd {
 	return &AddCmd{
 		proxyService: proxyService,
 	}

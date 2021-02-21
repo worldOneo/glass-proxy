@@ -2,17 +2,17 @@ package cmds
 
 import (
 	"github.com/worldOneo/glass-proxy/config"
-	"github.com/worldOneo/glass-proxy/tcpproxy"
+	"github.com/worldOneo/glass-proxy/proxy"
 )
 
 // SaveCmd saves the config
 type SaveCmd struct {
-	proxyService *tcpproxy.ProxyService
+	proxyService proxy.Service
 	cnf          string
 }
 
 // NewSaveCommand creates a new save cmf
-func NewSaveCommand(proxyService *tcpproxy.ProxyService, confPath string) *SaveCmd {
+func NewSaveCommand(proxyService proxy.Service, confPath string) *SaveCmd {
 	return &SaveCmd{
 		cnf:          confPath,
 		proxyService: proxyService,
@@ -21,5 +21,5 @@ func NewSaveCommand(proxyService *tcpproxy.ProxyService, confPath string) *SaveC
 
 // Handle saves the config
 func (s *SaveCmd) Handle(args []string) {
-	config.Create(s.cnf, s.proxyService.Config)
+	config.Create(s.cnf, s.proxyService.GetConfig())
 }

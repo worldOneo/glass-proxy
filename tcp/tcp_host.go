@@ -1,12 +1,21 @@
-package tcpproxy
+package tcp
 
 import (
 	"net"
 	"sync"
+	"time"
+
+	"github.com/worldOneo/glass-proxy/proxy"
 )
 
-// TCPHost contains a config and a status about this host
-type TCPHost struct {
+type Host interface {
+	proxy.Host
+	HealthCheck() (bool, error)
+	AddReverseProxy(net.Conn, net.Conn)
+}
+
+// Host contains a config and a status about this host
+type host struct {
 	Name   string
 	Addr   string
 	Status *HostStatus
@@ -14,23 +23,22 @@ type TCPHost struct {
 
 // HostStatus contains *dynamic* information about a host e.g: Health
 type HostStatus struct {
+	sync.RWMutex
 	Online      bool
-	StatusLock  *sync.RWMutex
-	Connections ProxyDict
+	Connections Dict
 }
 
-// ProxyDict a map of all proxys
-type ProxyDict map[*ReverseProxy]struct{}
+// Dict a map of all proxys
+type Dict map[*ReverseProxy]struct{}
 
-// NewTCPHost returns a new TCPHost
-func NewTCPHost(name string, addr string) *TCPHost {
-	host := &TCPHost{
+// NewHost returns a new Host
+func NewHost(name string, addr string) Host {
+	host := &host{
 		Name: name,
 		Addr: addr,
 		Status: &HostStatus{
 			Online:      true,
 			Connections: make(map[*ReverseProxy]struct{}),
-			StatusLock:  &sync.RWMutex{},
 		},
 	}
 	return host
@@ -38,59 +46,76 @@ func NewTCPHost(name string, addr string) *TCPHost {
 
 // IsRunning tries to connect to that host and returns true or false if it is able to connect.
 // This also updates the health of the host.
-func (T *TCPHost) IsRunning() bool {
+func (T *host) IsRunning() bool {
 	T.HealthCheck()
 	return T.Status.Online
 }
 
 // HealthCheck let this host perform a health check and updates it health information
-// memleak
-func (T *TCPHost) HealthCheck() (bool, error) {
-	conn, err := net.Dial("tcp", T.Addr)
+func (T *host) HealthCheck() (bool, error) {
+	conn, err := net.DialTimeout("tcp", T.Addr, 2*time.Second)
 
 	defer func() {
 		if conn != nil {
 			conn.Close()
 			conn = nil
 		}
-		err = nil
 	}()
 
-	T.Status.StatusLock.Lock()
+	T.Status.Lock()
 	if err != nil {
 		T.Status.Online = false
 	} else {
 		T.Status.Online = true
 	}
-	T.Status.StatusLock.Unlock()
+	T.Status.Unlock()
 
 	return T.Status.Online, err
 }
 
 // AddReverseProxy adds a new reverse proxy and starts it based on the connections given.
-func (T *TCPHost) AddReverseProxy(conn net.Conn, serverConn net.Conn) {
+func (T *host) AddReverseProxy(conn net.Conn, serverConn net.Conn) {
 	reverseProxy := NewReverseProxy(conn, serverConn)
-	T.Status.StatusLock.Lock()
+
+	T.Status.Lock()
 	T.Status.Connections[reverseProxy] = struct{}{}
-	T.Status.StatusLock.Unlock()
+	T.Status.Unlock()
 	defer func() {
-		T.Status.StatusLock.Lock()
+		T.Status.Lock()
 		delete(T.Status.Connections, reverseProxy)
-		T.Status.StatusLock.Unlock()
+		T.Status.Unlock()
 	}()
 	reverseProxy.pipeBothAndClose()
 }
 
 // GetConnectionCount returns the amount of connections held by this Host
-func (T *TCPHost) GetConnectionCount() int {
-	T.Status.StatusLock.RLock()
-	defer T.Status.StatusLock.RUnlock()
+func (T *host) GetConnectionCount() int {
+	T.Status.RLock()
+	defer T.Status.RUnlock()
 	return len(T.Status.Connections)
 }
 
 // IsOnline returns if the host was able to connect to its address
-func (T *TCPHost) IsOnline() bool {
-	T.Status.StatusLock.RLock()
-	defer T.Status.StatusLock.RUnlock()
-	return T.Status.Online
+func (T *host) IsOnline() bool {
+	return T.Status.IsOnline()
+}
+
+func (T *HostStatus) IsOnline() bool {
+	T.RLock()
+	defer T.RUnlock()
+	return T.Online
+}
+
+// GetName returns the name of the host
+func (T *host) GetName() string {
+	return T.Name
+}
+
+// GetAddr returns the remote addr of the host
+func (T *host) GetAddr() string {
+	return T.Addr
+}
+
+func (T *host) GetStatus() proxy.HostStatus {
+	return T.Status
 }

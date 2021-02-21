@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/worldOneo/glass-proxy/config"
-	"github.com/worldOneo/glass-proxy/tcpproxy"
+	"github.com/worldOneo/glass-proxy/tcp"
 )
 
 var tServers = []int{25555, 25556, 25557, 25558, 25559}
 
-func TestProxy(t *testing.T) {
+func TestTCPProxy(t *testing.T) {
 	hosts := make([]config.HostConfig, 0)
 
 	for _, s := range tServers {
@@ -30,8 +30,8 @@ func TestProxy(t *testing.T) {
 	}
 	rand.Seed(time.Now().UnixNano())
 
-	proxyService := tcpproxy.NewProxyService(&config.Config{
-		Addr:            "127.0.0.1:25560",
+	proxyService := tcp.NewProxyService(&config.Config{
+		Addr:            "127.0.0.1:25570",
 		Hosts:           hosts,
 		HealthCheckTime: 1,
 		LogConfig: config.LogConfig{
@@ -40,18 +40,17 @@ func TestProxy(t *testing.T) {
 		},
 	})
 
-	go start(proxyService)
-	go healthCheck(proxyService)
+	go proxyService.Run()
 
 	time.Sleep(time.Duration(5 * time.Second)) //await health check
+
 	wg := &sync.WaitGroup{}
 	for i := 0; i < 500; i++ {
 		wg.Add(1)
-		go func(a int) { stress("127.0.0.1:25560", wg, a, t) }(i)
+		go func(a int) { stress("127.0.0.1:25570", wg, a, t) }(i)
 	}
 
 	wg.Wait()
-
 }
 
 func stress(addr string, wg *sync.WaitGroup, a int, t *testing.T) {

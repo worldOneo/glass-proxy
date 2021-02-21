@@ -1,2 +1,4 @@
 /glass.proxy.json
-/glass-proxy.exe
+/*.exe
+/*.exe~
+/glass-proxy

@@ -9,6 +9,7 @@ import (
 
 // Config the configuration for the ProxyService
 type Config struct {
+	Protocol          string       `json:"protocol"`
 	Addr              string       `json:"addr"`
 	Interfaces        []string     `json:"interfaces"`
 	Hosts             []HostConfig `json:"hosts"`
@@ -64,7 +65,8 @@ func Create(path string, config *Config) error {
 // Default returns a default config
 func Default() *Config {
 	conf := &Config{
-		Addr: "0.0.0.0:25565",
+		Protocol: "tcp",
+		Addr:     "0.0.0.0:25565",
 		Hosts: []HostConfig{
 			{
 				Name: "Server-1",

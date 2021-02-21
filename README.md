@@ -1,5 +1,5 @@
 # Glass Proxy
-## A simple but fast [TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol)-[Reverse-Proxy](https://en.wikipedia.org/wiki/Reverse_proxy) with following features:
+## A simple but fast UDP/TCP-[Reverse-Proxy](https://en.wikipedia.org/wiki/Reverse_proxy) with following features:
 
  - Health Checking
  - Load Balancing

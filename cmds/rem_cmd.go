@@ -3,16 +3,16 @@ package cmds
 import (
 	"fmt"
 
-	"github.com/worldOneo/glass-proxy/tcpproxy"
+	"github.com/worldOneo/glass-proxy/proxy"
 )
 
 // RemCmd is a command to remove a server from the Proxy
 type RemCmd struct {
-	proxyService *tcpproxy.ProxyService
+	proxyService proxy.Service
 }
 
 // NewRemCommand creates a new AddCmd
-func NewRemCommand(proxyService *tcpproxy.ProxyService) *RemCmd {
+func NewRemCommand(proxyService proxy.Service) *RemCmd {
 	return &RemCmd{
 		proxyService: proxyService,
 	}
