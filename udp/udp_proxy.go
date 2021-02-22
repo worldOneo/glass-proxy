@@ -31,7 +31,7 @@ type Service struct {
 // NewService creates a new Proxy Service and starts the cleaner
 func NewService(cnf *config.Config) *Service {
 	proxy := &Service{
-		Cache:          NewCache(3 * time.Second),
+		Cache:          NewCache(time.Duration(cnf.UDPTimeout) * time.Millisecond),
 		Config:         cnf,
 		CommandHandler: cmd.NewCommandHandler(),
 		HostsLock:      &sync.RWMutex{},
@@ -47,7 +47,7 @@ func (p *Service) LoadHosts() {
 	defer p.HostsLock.Unlock()
 	hosts := make([]Host, 0)
 	for _, host := range p.Config.Hosts {
-		newHost := NewHost(host.Name, host.Addr, p.Config.Protocol)
+		newHost := NewHost(host.Name, host.Addr, p.Config.Protocol, p.Config.UDPTimeout)
 		hosts = append(hosts, newHost)
 	}
 	p.Hosts = hosts
@@ -89,7 +89,7 @@ func (p *Service) Run() error {
 		return err
 	}
 
-	go p.HealthCheck()
+	//go p.HealthCheck()
 
 	serviceconn, err := net.ListenUDP(p.Config.Protocol, laddr)
 	if err != nil {
@@ -126,7 +126,7 @@ func (p *Service) GetHost() Host {
 func (p *Service) AddHost(hostconfig config.HostConfig) {
 	p.HostsLock.Lock()
 	defer p.HostsLock.Unlock()
-	host := NewHost(hostconfig.Name, hostconfig.Addr, p.Config.Protocol)
+	host := NewHost(hostconfig.Name, hostconfig.Addr, p.Config.Protocol, p.Config.UDPTimeout)
 	p.Hosts = append(p.Hosts, host)
 }
 

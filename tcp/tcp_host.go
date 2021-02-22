@@ -17,9 +17,10 @@ type Host interface {
 
 // Host contains a config and a status about this host
 type host struct {
-	Name   string
-	Addr   string
-	Status *HostStatus
+	Name     string
+	Addr     string
+	Protocol string
+	Status   *HostStatus
 }
 
 // HostStatus contains *dynamic* information about a host e.g: Health
@@ -33,10 +34,11 @@ type HostStatus struct {
 type Dict map[*ReverseProxy]struct{}
 
 // NewHost returns a new Host
-func NewHost(name string, addr string) Host {
+func NewHost(name string, addr string, protocol string) Host {
 	host := &host{
-		Name: name,
-		Addr: addr,
+		Name:     name,
+		Addr:     addr,
+		Protocol: protocol,
 		Status: &HostStatus{
 			Online:      true,
 			Connections: make(map[*ReverseProxy]struct{}),
@@ -54,7 +56,7 @@ func (T *host) IsRunning() bool {
 
 // HealthCheck let this host perform a health check and updates it health information
 func (T *host) HealthCheck() (bool, error) {
-	conn, err := net.DialTimeout("tcp", T.Addr, 2*time.Second)
+	conn, err := net.DialTimeout(T.Protocol, T.Addr, 2*time.Second)
 
 	defer func() {
 		if conn != nil {
@@ -90,10 +92,10 @@ func (T *host) AddReverseProxy(conn net.Conn, serverConn net.Conn) {
 }
 
 // GetConnectionCount returns the amount of connections held by this Host
-func (T *host) GetConnectionCount() int {
-	T.Status.RLock()
-	defer T.Status.RUnlock()
-	return len(T.Status.Connections)
+func (T *HostStatus) GetConnectionCount() int {
+	T.RLock()
+	defer T.RUnlock()
+	return len(T.Connections)
 }
 
 // IsOnline returns if the host was able to connect to its address

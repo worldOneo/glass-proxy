@@ -57,12 +57,13 @@ func (U *Cache) Remove(ip *net.UDPAddr) {
 func (U *Cache) Get(ip *net.UDPAddr) interface{} {
 	U.RLock()
 	defer U.RUnlock()
-	host := U.internalMap[ip.String()]
+	s := ip.String()
+	host := U.internalMap[s]
 	if host == nil {
 		return nil
 	}
-	U.internalMap[ip.String()].access = time.Now()
-	return U.internalMap[ip.String()].value
+	U.internalMap[s].access = time.Now()
+	return U.internalMap[s].value
 }
 
 func (U *Cache) expirationCheck() {

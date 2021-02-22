@@ -21,6 +21,7 @@ type host struct {
 	Name              string
 	Addr              string
 	Protocol          string
+	Timeout           time.Duration
 	UDPAddr           *net.UDPAddr
 	Status            *HostStatus
 	ClientServerCache *Cache
@@ -31,16 +32,17 @@ type HostStatus struct {
 	proxy.HostStatus
 	sync.RWMutex
 	Online      bool
-	Connections map[*net.IPAddr]*net.Conn
+	Connections int
 }
 
 // NewHost returns a new Host
-func NewHost(name, addr, prot string) Host {
+func NewHost(name, addr, prot string, timeout int) Host {
 	udpAddr, _ := net.ResolveUDPAddr("udp", addr)
 	host := &host{
 		Protocol:          prot,
 		UDPAddr:           udpAddr,
-		ClientServerCache: NewCache(5 * time.Second),
+		ClientServerCache: NewCache(time.Duration(timeout) * time.Second),
+		Timeout:           time.Duration(timeout),
 		Name:              name,
 		Addr:              addr,
 		Status: &HostStatus{
@@ -86,7 +88,7 @@ func (U *host) Connect(buff []byte, clientaddr *net.UDPAddr, serviceconn *net.UD
 			log.Printf("Error dialing host: %v", err)
 			return err
 		}
-		go Relay(conn, serviceconn, clientaddr, U.UDPAddr)
+		go U.Relay(conn, serviceconn, clientaddr)
 		U.ClientServerCache.Put(clientaddr, conn)
 	} else {
 		conn = testConn.(*net.UDPConn)
@@ -100,17 +102,23 @@ func (U *host) Connect(buff []byte, clientaddr *net.UDPAddr, serviceconn *net.UD
 }
 
 // Relay forwards packets from downstream to upstream/toaddr
-func Relay(downstream net.PacketConn, upstream *net.UDPConn, toaddr, fromaddr *net.UDPAddr) {
+func (U *host) Relay(downstream net.PacketConn, upstream *net.UDPConn, toaddr *net.UDPAddr) {
 	buffer := make([]byte, MUDS)
+	U.Status.Lock()
+	U.Status.Connections++
+	U.Status.Unlock()
 
 	defer func() {
+		U.Status.Lock()
+		U.Status.Connections--
+		U.Status.Unlock()
 		downstream.Close()
 	}()
 
-	log.Printf("Started relaying %s->%s", fromaddr.String(), toaddr.String())
+	log.Printf("Started relaying %s->%s", U.UDPAddr.String(), toaddr.String())
 
 	for {
-		downstream.SetReadDeadline(time.Now().Add(time.Second * 3))
+		downstream.SetReadDeadline(time.Now().Add(time.Millisecond * U.Timeout))
 		lenb, _, err := downstream.ReadFrom(buffer)
 		if err != nil {
 			log.Printf("Unable to read datagram (server-Xproxy->client): %v", err)
@@ -121,4 +129,11 @@ func Relay(downstream net.PacketConn, upstream *net.UDPConn, toaddr, fromaddr *n
 			log.Printf("Unable to write datagram (server->proxy-Xclient): %v", err)
 		}
 	}
+}
+
+// GetConnectionCount returns the amount of connected hosts
+func (U *HostStatus) GetConnectionCount() int {
+	U.RLock()
+	defer U.RUnlock()
+	return U.Connections
 }

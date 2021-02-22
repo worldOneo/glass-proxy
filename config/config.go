@@ -14,7 +14,8 @@ type Config struct {
 	Interfaces        []string     `json:"interfaces"`
 	Hosts             []HostConfig `json:"hosts"`
 	LogConfig         LogConfig    `json:"LogConfiguration"`
-	HealthCheckTime   int          `json:"healthCheckSeconds"`
+	HealthCheckTime   float64      `json:"healthCheckSeconds"`
+	UDPTimeout         int          `json:"UDPTimeout"`
 	SaveConfigOnClose bool         `json:"saveConfigOnClose"`
 }
 
@@ -78,6 +79,7 @@ func Default() *Config {
 			LogDisconnect:  false,
 		},
 		HealthCheckTime:   5,
+		UDPTimeout:         3000,
 		SaveConfigOnClose: false,
 		Interfaces:        []string{},
 	}
@@ -90,6 +92,6 @@ func (c *Config) fillFlags() {
 	flag.BoolVar(&c.LogConfig.LogDisconnect, "logd", c.LogConfig.LogDisconnect, "Log connections which where closed.")
 	flag.BoolVar(&c.SaveConfigOnClose, "save", c.SaveConfigOnClose, "Save the config when the server is stopped.")
 	flag.StringVar(&c.Addr, "addr", c.Addr, "The addr to start the server on.")
-	flag.IntVar(&c.HealthCheckTime, "health", c.HealthCheckTime, "The time (in seconds) between health checks.")
+	flag.Float64Var(&c.HealthCheckTime, "health", c.HealthCheckTime, "The time (in seconds) between health checks.")
 	flag.Parse()
 }

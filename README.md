@@ -36,9 +36,9 @@ This is the default configuration (the file `glass.proxy.json`):
 | (host) name | The name of the host  (for logging)
 | (host) addr | The address of the host server
 | (LogConfiguration) logConnections | if the connections successful connections should be logged
-| (LogConfiguration) logDisconnect | log when a connection is cloesed
-| healthCheckSeconds | The time (in seconds) between server health checks (not available for UDP)
-
+| (LogConfiguration) logDisconnect | log when a connection is cloesed |
+| healthCheckSeconds | The time (in seconds) between server health checks |
+| UDPTimeout | The time (in ms) until a UDP connection is considered as closed |
 # CLI
 Some config-values can be set in the start command.
 ```

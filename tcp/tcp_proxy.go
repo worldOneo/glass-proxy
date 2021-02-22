@@ -65,7 +65,7 @@ func (p *Service) LoadHosts() {
 	defer p.HostsLock.Unlock()
 	hosts := make([]Host, 0)
 	for _, host := range p.Config.Hosts {
-		newHost := NewHost(host.Name, host.Addr)
+		newHost := NewHost(host.Name, host.Addr, p.Config.Protocol)
 		hosts = append(hosts, newHost)
 	}
 	p.Hosts = hosts
@@ -184,7 +184,7 @@ func createDialer(protocol, addr string) (*net.Dialer, error) {
 }
 
 func (p *Service) Handle(conn net.Conn) {
-	host, remote, err := p.DialToHost("tcp", conn)
+	host, remote, err := p.DialToHost(p.Config.Protocol, conn)
 
 	if err != nil {
 		log.Printf("Couldn't connect to %s (%s) \"%v\"", host.GetName(), host.GetAddr(), err)
@@ -227,7 +227,7 @@ func (p *Service) GetConfig() *config.Config {
 
 func (p *Service) Run() {
 	go p.HealthCheck()
-	ln, err := net.Listen("tcp", p.Config.Addr)
+	ln, err := net.Listen(p.Config.Protocol, p.Config.Addr)
 	if err != nil {
 		log.Fatalf("Couldn't start the server: %v", err)
 	}

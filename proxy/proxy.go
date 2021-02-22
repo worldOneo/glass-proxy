@@ -22,4 +22,5 @@ type Host interface {
 // HostStatus enable lookups on dynamic information about a host.
 type HostStatus interface {
 	IsOnline() bool
+	GetConnectionCount() int
 }
