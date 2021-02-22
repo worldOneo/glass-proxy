@@ -3,7 +3,7 @@ package udp
 import (
 	"errors"
 	"log"
-	"math/rand"
+	"math"
 	"net"
 	"sync"
 	"time"
@@ -47,7 +47,8 @@ func (p *Service) LoadHosts() {
 	defer p.HostsLock.Unlock()
 	hosts := make([]Host, 0)
 	for _, host := range p.Config.Hosts {
-		newHost := NewHost(host.Name, host.Addr, p.Config.Protocol, p.Config.UDPTimeout)
+		newHost := NewHost(host.Name, host.Addr, p.Config.Protocol,
+			p.Config.UDPTimeout, p.Config.LogConfig.LogConnections, p.Config.LogConfig.LogDisconnect)
 		hosts = append(hosts, newHost)
 	}
 	p.Hosts = hosts
@@ -114,19 +115,29 @@ func (p *Service) Run() error {
 func (p *Service) GetHost() Host {
 	p.HostsLock.RLock()
 	defer p.HostsLock.RUnlock()
-	l := len(p.Hosts)
-	if l == 0 {
+
+	index := -1
+	min := math.MaxInt32
+	c := 0
+	for i, h := range p.Hosts {
+		c = h.GetStatus().GetConnectionCount()
+		if c < min {
+			min = c
+			index = i
+		}
+	}
+	if index == -1 {
 		return nil
 	}
-	i := rand.Intn(l)
-	return p.Hosts[i]
+	return p.Hosts[index]
 }
 
 // AddHost adds a host to this proxy
 func (p *Service) AddHost(hostconfig config.HostConfig) {
 	p.HostsLock.Lock()
 	defer p.HostsLock.Unlock()
-	host := NewHost(hostconfig.Name, hostconfig.Addr, p.Config.Protocol, p.Config.UDPTimeout)
+	host := NewHost(hostconfig.Name, hostconfig.Addr, p.Config.Protocol,
+		p.Config.UDPTimeout, p.Config.LogConfig.LogConnections, p.Config.LogConfig.LogDisconnect)
 	p.Hosts = append(p.Hosts, host)
 }
 

@@ -3,7 +3,7 @@ package tcp
 import (
 	"errors"
 	"log"
-	"math/rand"
+	"math"
 	"net"
 	"sync"
 	"time"
@@ -97,23 +97,21 @@ func (p *Service) RemHost(name string) {
 func (p *Service) GetHost() Host {
 	p.HostsLock.RLock()
 	defer p.HostsLock.RUnlock()
-	l := len(p.Hosts)
-	if l == 0 {
-		return nil
-	}
-	i := rand.Intn(l)
-	h := p.Hosts[i]
-	if h.GetStatus().IsOnline() {
-		return h
-	}
-	mx := i + l
-	for j := i; j < mx; j++ {
-		h = p.Hosts[j%l]
-		if h.GetStatus().IsOnline() {
-			return h
+
+	index := -1
+	min := math.MaxInt32
+	c := 0
+	for i, h := range p.Hosts {
+		c = h.GetStatus().GetConnectionCount()
+		if c < min && h.GetStatus().IsOnline() {
+			min = c
+			index = i
 		}
 	}
-	return nil
+	if index == -1 {
+		return nil
+	}
+	return p.Hosts[index]
 }
 
 // DialToHost dials a connection or returns error.
@@ -187,6 +185,10 @@ func (p *Service) Handle(conn net.Conn) {
 	host, remote, err := p.DialToHost(p.Config.Protocol, conn)
 
 	if err != nil {
+		if host == nil {
+			log.Printf("Couldn't connect to any host \"%v\"", err)
+			return
+		}
 		log.Printf("Couldn't connect to %s (%s) \"%v\"", host.GetName(), host.GetAddr(), err)
 		return
 	}

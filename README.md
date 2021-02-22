@@ -36,7 +36,7 @@ This is the default configuration (the file `glass.proxy.json`):
 | (host) name | The name of the host  (for logging)
 | (host) addr | The address of the host server
 | (LogConfiguration) logConnections | if the connections successful connections should be logged
-| (LogConfiguration) logDisconnect | log when a connection is cloesed |
+| (LogConfiguration) logDisconnect | log when a connection is closed |
 | healthCheckSeconds | The time (in seconds) between server health checks |
 | UDPTimeout | The time (in ms) until a UDP connection is considered as closed |
 # CLI
@@ -61,7 +61,7 @@ e.g: `$ ./glass-proxy -save=false -logc=true -health=3 -addr="0.0.0.0:1234"`
 The servers are checked regularly (based on the config `healthCheckSeconds`) if they can be reached (only one connection needed to verify). If not no client will be connected to that server.
 
 # Load Balancing
-The proxy selects a random server for every connection. This way the load will be (pseudo) randomly balanced between every registered host. The Health Checks ensure that the Server is reachable.
+The proxy selects the host with the lowest amount of connections. This way the load is balanced between every registered hosts. The health checks ensure (at least for TCP) that the host is reachable.
 
 # Commands
 While the proxy is running you can add/remove server

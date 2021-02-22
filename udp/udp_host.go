@@ -21,6 +21,8 @@ type host struct {
 	Name              string
 	Addr              string
 	Protocol          string
+	LogCon            bool
+	LogDis            bool
 	Timeout           time.Duration
 	UDPAddr           *net.UDPAddr
 	Status            *HostStatus
@@ -36,9 +38,11 @@ type HostStatus struct {
 }
 
 // NewHost returns a new Host
-func NewHost(name, addr, prot string, timeout int) Host {
+func NewHost(name, addr, prot string, timeout int, lc, ld bool) Host {
 	udpAddr, _ := net.ResolveUDPAddr("udp", addr)
 	host := &host{
+		LogCon:            lc,
+		LogDis:            ld,
 		Protocol:          prot,
 		UDPAddr:           udpAddr,
 		ClientServerCache: NewCache(time.Duration(timeout) * time.Second),
@@ -115,18 +119,22 @@ func (U *host) Relay(downstream net.PacketConn, upstream *net.UDPConn, toaddr *n
 		downstream.Close()
 	}()
 
-	log.Printf("Started relaying %s->%s", U.UDPAddr.String(), toaddr.String())
+	if U.LogCon {
+		log.Printf("Started relaying %s->%s", U.UDPAddr.String(), toaddr.String())
+	}
 
 	for {
 		downstream.SetReadDeadline(time.Now().Add(time.Millisecond * U.Timeout))
 		lenb, _, err := downstream.ReadFrom(buffer)
 		if err != nil {
-			log.Printf("Unable to read datagram (server-Xproxy->client): %v", err)
+			if U.LogDis {
+				log.Printf("Disconnected (server-Xproxy->client): %v", err)
+			}
 			return
 		}
 		upstream.WriteToUDP(buffer[:lenb], toaddr)
 		if err != nil {
-			log.Printf("Unable to write datagram (server->proxy-Xclient): %v", err)
+			log.Printf("Unable to forward datagram (server->proxy-Xclient): %v", err)
 		}
 	}
 }

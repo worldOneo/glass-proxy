@@ -15,7 +15,7 @@ type Config struct {
 	Hosts             []HostConfig `json:"hosts"`
 	LogConfig         LogConfig    `json:"LogConfiguration"`
 	HealthCheckTime   float64      `json:"healthCheckSeconds"`
-	UDPTimeout         int          `json:"UDPTimeout"`
+	UDPTimeout        int          `json:"UDPTimeout"`
 	SaveConfigOnClose bool         `json:"saveConfigOnClose"`
 }
 
@@ -79,7 +79,7 @@ func Default() *Config {
 			LogDisconnect:  false,
 		},
 		HealthCheckTime:   5,
-		UDPTimeout:         3000,
+		UDPTimeout:        3000,
 		SaveConfigOnClose: false,
 		Interfaces:        []string{},
 	}
